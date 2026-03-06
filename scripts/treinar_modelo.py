@@ -51,7 +51,8 @@ MODEL_PATH = os.path.join(MODELS_DIR, "random_forest_model.pkl")
 # ---------------------------------------------------------------------------
 if not os.path.exists(DATA_PATH):
     print(f"ERRO: Arquivo não encontrado: {DATA_PATH}")
-    print("Execute o script data_preparation.py primeiro para gerar data/tmdb_5000_pronto.csv")
+    print("Execute o script de preparação primeiro para gerar data/tmdb_5000_pronto.csv:")
+    print("  poetry run python scripts/data_preparation.py")
     sys.exit(1)
 
 df = pd.read_csv(DATA_PATH)
