@@ -6,6 +6,12 @@ Projeto de análise de dados do dataset TMDB 5000 utilizando Python, com foco em
 
 O projeto utiliza o dataset [TMDB 5000 Movies](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata) obtido do Kaggle.
 
+### Instruções para Download do Dataset
+1. Acesse o [link oficial no Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata).
+2. Faça o download do arquivo compactado.
+3. Extraia os arquivos `tmdb_5000_movies.csv` e `tmdb_5000_credits.csv`.
+4. Salve ambos os arquivos dentro da pasta `data/` na raiz deste projeto.
+
 ## Requisitos
 
 - Python 3.13+
@@ -102,6 +108,14 @@ poetry update
 ```bash
 poetry remove <package-name>
 ```
+
+## Principais Insights ("A Fórmula do Sucesso")
+
+Nosso relatório analítico completo pode ser lido em [INSIGHTS.md](./INSIGHTS.md). De maneira resumida, identificamos que a "Fórmula do Sucesso" hegemônica prioriza a mitigação de risco:
+- **Alto Orçamento vs Risco Estético:** Investimentos gigantescos estão associados a gêneros familiares e franquias, visando lucros globais e licenciamentos, em vez de excelência artística/narrativa.
+- **Terror como Refúgio:** Filmes de Horror apresentam ROI gigantesco, sendo um formato financeiramente sustentável e psicologicamente instigante sem precisar de estrelas milionárias.
+- **Engajamento Supera Qualidade:** O modelo preditivo provou que a quantidade de avaliações (*vote_count*) é um preditor muito mais forte que a nota em si (*vote_average*). Ou seja, filmes polarizadores que geram debates massivos nas redes são mais rentáveis que obras elogiadas, mas silenciosas.
+Para saber mais e entender todas as limitações analíticas do dataset, confira o [INSIGHTS.md](./INSIGHTS.md).
 
 ## Referências
 
