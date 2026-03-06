@@ -13,6 +13,8 @@ import sys
 import warnings
 
 import joblib
+import matplotlib
+matplotlib.use("Agg")  # Backend sem display — evita erro de Tcl/Tk
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
