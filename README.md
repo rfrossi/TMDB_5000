@@ -81,9 +81,21 @@ Para iniciar um Jupyter Lab:
 poetry run jupyter lab
 ```
 
+### Preparar os dados e treinar o modelo
+
+Antes de executar o painel, é necessário gerar os artefatos (`data/tmdb_5000_pronto.csv` e `models/random_forest_model.pkl`), que não estão no repositório:
+
+```bash
+# 1. Preparar os dados brutos (gera data/tmdb_5000_pronto.csv)
+poetry run python scripts/data_preparation.py
+
+# 2. Treinar o modelo (gera models/random_forest_model.pkl)
+poetry run python scripts/treinar_modelo.py
+```
+
 ### Streamlit
 
-Para executar uma aplicação Streamlit:
+Com os artefatos gerados, execute o painel interativo:
 
 ```bash
 poetry run streamlit run app.py
