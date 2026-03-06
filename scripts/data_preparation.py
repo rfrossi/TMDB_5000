@@ -8,12 +8,15 @@ import json
 import numpy as np
 from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / 'data'
+
 
 def load_datasets():
     """Load movies and credits CSV files"""
     print("[LOAD] Carregando datasets...")
-    movies_df = pd.read_csv('tmdb_5000_movies.csv')
-    credits_df = pd.read_csv('tmdb_5000_credits.csv')
+    movies_df = pd.read_csv(DATA_DIR / 'tmdb_5000_movies.csv')
+    credits_df = pd.read_csv(DATA_DIR / 'tmdb_5000_credits.csv')
     print(f"[OK] Movies: {len(movies_df)} registros")
     print(f"[OK] Credits: {len(credits_df)} registros")
     return movies_df, credits_df
@@ -164,7 +167,7 @@ def export_prepared_data(df):
     """Export cleaned data to CSV"""
     print("\n[EXPORT] Exportando dados preparados...")
 
-    output_file = 'tmdb_5000_pronto.csv'
+    output_file = DATA_DIR / 'tmdb_5000_pronto.csv'
     df.to_csv(output_file, index=False)
 
     file_size = Path(output_file).stat().st_size / (1024 * 1024)
