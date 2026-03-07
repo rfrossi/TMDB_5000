@@ -154,12 +154,12 @@ with tab1:
     with col3:
         st.metric("⭐ Nota Média", f"{filtered_df['vote_average'].mean():.2f}/10")
     with col4:
-        st.metric("💵 Budget Médio", f"${filtered_df['budget'].mean()/1e6:.2f}M")
+        st.metric("💵 Orçamento Médio", f"${filtered_df['budget'].mean()/1e6:.2f}M")
 
     st.divider()
 
     # Gráfico de Dispersão: Orçamento x Receita
-    st.subheader("Budget × Revenue × Popularidade")
+    st.subheader("Orçamento × Receita × Popularidade")
     scatter = px.scatter(
         filtered_df,
         x='budget', y='revenue',
@@ -167,7 +167,13 @@ with tab1:
         hover_name='title',
         hover_data={'budget': '$,.0f', 'revenue': '$,.0f', 'profit': '$,.0f'},
         title="Cada bolha: tamanho = popularidade, cor = gênero",
-        labels={'budget': 'Budget (USD)', 'revenue': 'Receita (USD)'}
+        labels={
+            'budget': 'Orçamento (USD)', 
+            'revenue': 'Receita (USD)',
+            'profit': 'Lucro (USD)',
+            'popularity': 'Popularidade',
+            'main_genre': 'Gênero'
+        }
     )
     scatter.update_layout(height=600, template='plotly_white', hovermode='closest')
     st.plotly_chart(scatter, use_container_width=True)
@@ -196,7 +202,7 @@ with tab2:
         with col1:
             fig_profit = px.bar(
                 genre_stats, x='profit', y=genre_stats.index, orientation='h', color='profit',
-                labels={'profit': 'Lucro Médio (USD)'},
+                labels={'profit': 'Lucro Médio (USD)', 'main_genre': 'Gênero'},
                 title="Lucro Médio por Gênero",
                 color_continuous_scale='Turbo'
             )
@@ -207,8 +213,8 @@ with tab2:
         with col2:
             fig_roi = px.bar(
                 genre_stats, x='roi', y=genre_stats.index, orientation='h', color='roi',
-                labels={'roi': 'ROI Médio (%)'},
-                title="ROI Médio por Gênero",
+                labels={'roi': 'Retorno sobre Investimento Médio (%)', 'main_genre': 'Gênero'},
+                title="Retorno sobre Investimento Médio por Gênero",
                 color_continuous_scale='Viridis'
             )
             fig_roi.update_layout(height=400, template='plotly_white', showlegend=False)
@@ -216,8 +222,18 @@ with tab2:
 
         # Tabela detalhada
         st.subheader("Estatísticas Detalhadas")
+        
+        # Display data with translated columns
+        display_df = genre_stats.round(2).sort_values('profit', ascending=False).rename(columns={
+            'count': 'Contagem',
+            'profit': 'Lucro Médio (USD)',
+            'roi': 'Retorno sobre Investimento (%)',
+            'vote_average': 'Nota Média'
+        })
+        display_df.index.name = 'Gênero'
+        
         st.dataframe(
-            genre_stats.round(2).sort_values('profit', ascending=False),
+            display_df,
             use_container_width=True
         )
     else:
@@ -246,7 +262,7 @@ with tab3:
         with col1:
             fig_total = px.bar(
                 studio_stats, x='profit_total', y=studio_stats.index, orientation='h', color='profit_total',
-                labels={'profit_total': 'Lucro Total (USD)'},
+                labels={'profit_total': 'Lucro Total (USD)', 'main_company': 'Estúdio'},
                 title="Top 10 Estúdios — Lucro Total",
                 color_continuous_scale='Reds'
             )
@@ -257,8 +273,8 @@ with tab3:
         with col2:
             fig_roi_studio = px.bar(
                 studio_stats, x='roi_mean', y=studio_stats.index, orientation='h', color='roi_mean',
-                labels={'roi_mean': 'ROI Médio (%)'},
-                title="Top 10 Estúdios — ROI Médio",
+                labels={'roi_mean': 'Retorno sobre Investimento Médio (%)', 'main_company': 'Estúdio'},
+                title="Top 10 Estúdios — Retorno sobre Investimento Médio",
                 color_continuous_scale='Blues'
             )
             fig_roi_studio.update_layout(height=400, template='plotly_white', showlegend=False)
@@ -316,6 +332,19 @@ with tab5:
     # Selecionar colunas numéricas
     numeric_cols = ['budget', 'revenue', 'profit', 'roi', 'popularity', 'vote_average', 'vote_count', 'runtime']
     corr_df = filtered_df[numeric_cols].corr(method='pearson')
+    
+    # Traduzir nomes para o heatmap
+    col_names_pt = {
+        'budget': 'Orçamento',
+        'revenue': 'Receita',
+        'profit': 'Lucro',
+        'roi': 'Retorno sobre Invest.',
+        'popularity': 'Popularidade',
+        'vote_average': 'Nota Média',
+        'vote_count': 'Qtd. Votos',
+        'runtime': 'Duração'
+    }
+    corr_df.rename(columns=col_names_pt, index=col_names_pt, inplace=True)
 
     fig_corr, ax = plt.subplots(figsize=(10, 8))
     sns.heatmap(
@@ -351,7 +380,7 @@ with tab5:
 # ─────────────────────────────────────────────────────────────────
 
 with tab6:
-    st.subheader("🤖 Previsão de Popularidade")
+    st.subheader("🤖 Previsão: Expectativa de ROI")
 
     # Recuperando métricas dinâmicas do modelo treinado
     mets = model_data.get('metricas', {})
@@ -362,21 +391,21 @@ with tab6:
 
     st.info(f"""
     **Como funciona:**
-    O modelo Random Forest (com PCA) foi treinado para prever se um filme
-    terá **alta popularidade** (acima da mediana) ou **baixa popularidade**.
+    O modelo preditivo foi treinado para prever se um filme
+    terá uma **Alta Expectativa de ROI** (acima da mediana) ou **Baixa Expectativa de ROI**.
 
     **Performance do modelo treinado:**
     - Acurácia: {acc:.2f}%
     - Precisão: {prec:.2f}%
-    - F1-Score: {f1:.2f}%
-    - Recall: {rec:.2f}%
+    - Pontuação F1: {f1:.2f}%
+    - Revocação (Recall): {rec:.2f}%
     """)
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.subheader("📝 Entre com os dados do filme")
-        budget_input = st.number_input("Budget (USD)", value=50000000, step=1000000)
+        budget_input = st.number_input("Orçamento (USD)", value=50000000, step=1000000)
         revenue_input = st.number_input("Receita (USD)", value=150000000, step=1000000)
         runtime_input = st.number_input("Duração (minutos)", value=120, step=1)
         vote_avg_input = st.number_input("Nota Média (0-10)", value=7.0, step=0.1, min_value=0.0, max_value=10.0)
@@ -392,7 +421,7 @@ with tab6:
             # Carrega o Pipeline do Scikit-Learn e faz TUDO automaticamente
             ml_pipeline = model_data['pipeline']
 
-            # O pipeline aplica o Scaler, o PCA e o Random Forest de uma só vez
+            # O pipeline aplica as transformações e o modelo de uma só vez
             pred_proba = ml_pipeline.predict_proba(X_input)[0]
             pred_class = ml_pipeline.predict(X_input)[0]
 
@@ -404,7 +433,7 @@ with tab6:
             fig_gauge = go.Figure(go.Indicator(
                 mode="gauge+number+delta",
                 value=alta_prob,
-                title={'text': "Probabilidade de Alta Popularidade"},
+                title={'text': "Probabilidade de Alta Expectativa de ROI"},
                 delta={'reference': 50},
                 gauge={
                     'axis': {'range': [0, 100]},
@@ -428,8 +457,8 @@ with tab6:
 
             # Interpretação de resultado
             if pred_class == 1:
-                st.success(f"✅ **Alta Popularidade Prevista** ({alta_prob:.1f}% de probabilidade)")
+                st.success(f"✅ **Alta Expectativa de ROI Prevista** ({alta_prob:.1f}% de probabilidade)")
             else:
-                st.warning(f"⚠️ **Baixa Popularidade Prevista** ({(100-alta_prob):.1f}% de probabilidade)")
+                st.warning(f"⚠️ **Baixa Expectativa de ROI Prevista** ({(100-alta_prob):.1f}% de probabilidade)")
 
-            st.metric("Mediana de Popularidade base (Treino)", f"{mediana_pop:.2f}")
+            st.metric("Mediana Base (Treino)", f"{mediana_pop:.2f}")
