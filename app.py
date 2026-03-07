@@ -8,6 +8,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import seaborn as sns
 import joblib
 import ast
 import warnings
@@ -309,22 +311,33 @@ with tab5:
     numeric_cols = ['budget', 'revenue', 'profit', 'roi', 'popularity', 'vote_average', 'vote_count', 'runtime']
     corr_df = filtered_df[numeric_cols].corr(method='pearson')
 
-    fig_corr = px.imshow(
+    fig_corr, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(
         corr_df,
-        color_continuous_scale='RdBu_r', color_continuous_midpoint=0,
-        zmin=-1, zmax=1,
-        title="Correlação entre Métricas (Pearson)",
-        labels={'color': 'Correlação'},
-        aspect='auto'
+        annot=True,
+        fmt='.2f',
+        cmap='coolwarm',
+        vmin=-1,
+        vmax=1,
+        center=0,
+        linewidths=0.5,
+        linecolor='white',
+        square=True,
+        ax=ax,
+        annot_kws={'size': 10}
     )
-    fig_corr.update_layout(height=600, width=800)
-    st.plotly_chart(fig_corr, use_container_width=True)
+    ax.set_title("Correlação entre Métricas (Pearson)", fontsize=14, pad=16)
+    ax.tick_params(axis='x', rotation=45, labelsize=10)
+    ax.tick_params(axis='y', rotation=0, labelsize=10)
+    plt.tight_layout()
+    st.pyplot(fig_corr, use_container_width=True)
+    plt.close(fig_corr)
 
     st.info("""
     **Interpretação:**
-    - Vermelho: correlação positiva (aumentam juntas)
-    - Azul: correlação negativa (variam inversamente)
-    - Branco: sem correlação
+    - Vermelho intenso: correlação positiva forte (próxima de +1)
+    - Azul intenso: correlação negativa forte (próxima de -1)
+    - Branco/neutro: sem correlação (próxima de 0)
     """)
 
 # ─────────────────────────────────────────────────────────────────
