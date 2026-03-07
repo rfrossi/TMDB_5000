@@ -1,6 +1,10 @@
 """
 Streamlit Dashboard — TMDB 5000 Movies Analysis & Popularity Prediction
-Consolidates EDA insights (Card 3) + Random Forest model (Card 4)
+
+Módulo de Interface Interativa e Visualização (Card 5).
+Consolida os insights da Análise Exploratória (EDA - Card 3)
+e integra a predição gerada pelo modelo Random Forest (Card 4),
+permitindo que o usuário explore métricas e tendências dinamicamente.
 """
 
 import streamlit as st
@@ -20,7 +24,7 @@ warnings.filterwarnings('ignore')
 BASE_DIR = Path(__file__).parent
 
 # ─────────────────────────────────────────────────────────────────
-# CACHED DATA & MODEL LOADING
+# CARREGAMENTO DE DADOS E MODELO EM CACHE
 # ─────────────────────────────────────────────────────────────────
 
 @st.cache_data
@@ -28,11 +32,11 @@ def load_data():
     """Load and preprocess TMDB 5000 dataset."""
     df = pd.read_csv(BASE_DIR / 'data' / 'tmdb_5000_pronto.csv')
 
-    # Parse genres (string of list → list)
+    # Extrair gêneros (string de list -> list)
     df['genres_list'] = df['genres'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else [])
     df['main_genre'] = df['genres_list'].apply(lambda lst: lst[0] if lst else 'Unknown')
 
-    # Parse production companies
+    # Extrair produtoras cinematográficas
     def extract_company_names(companies_str):
         try:
             if pd.isna(companies_str):
@@ -47,17 +51,17 @@ def load_data():
     df['companies_list'] = df['production_companies'].apply(extract_company_names)
     df['main_company'] = df['companies_list'].apply(lambda lst: lst[0] if lst else 'Unknown')
 
-    # Convert release_date and extract year/month
+    # Converter data de lançamento e extrair ano/mês
     df['release_date'] = pd.to_datetime(df['release_date'], errors='coerce')
     df['release_year'] = df['release_date'].dt.year
     df['release_month'] = df['release_date'].dt.month
 
+    # Vamos considerar apenas filmes com orçamento realista (maior que 100 mil dólares)
+    df = df[(df['budget'] >= 100000) & (df['revenue'] > 0)].copy()
+
     # Financial metrics
     df['profit'] = df['revenue'] - df['budget']
-    df['roi'] = np.where(df['budget'] > 0, (df['profit'] / df['budget']) * 100, 0)
-
-    # Filter to valid financial data
-    df = df[(df['budget'] > 0) & (df['revenue'] > 0)].copy()
+    df['roi'] = (df['profit'] / df['budget']) * 100
 
     return df
 
@@ -69,7 +73,7 @@ def load_model():
 
 
 # ─────────────────────────────────────────────────────────────────
-# PAGE CONFIG
+# CONFIGURAÇÃO DA PÁGINA
 # ─────────────────────────────────────────────────────────────────
 
 st.set_page_config(
@@ -83,32 +87,32 @@ st.title("🎬 TMDB 5000 — Dashboard Interativo")
 st.markdown("Análise de dados de filmes com previsão de popularidade")
 
 # ─────────────────────────────────────────────────────────────────
-# LOAD DATA
+# CARREGAR DADOS
 # ─────────────────────────────────────────────────────────────────
 
 df = load_data()
-pipeline = load_model()
+model_data = load_model()
 
 # ─────────────────────────────────────────────────────────────────
-# SIDEBAR FILTERS
+# FILTROS DA BARRA LATERAL
 # ─────────────────────────────────────────────────────────────────
 
 st.sidebar.header("🔍 Filtros")
 
-# Year range
+# Intervalo de anos
 min_year = int(df['release_year'].min())
 max_year = int(df['release_year'].max())
 year_range = st.sidebar.slider("Ano de Lançamento", min_year, max_year, (2000, max_year))
 
-# Genres
+# Gêneros
 all_genres = sorted(df['main_genre'].unique())
 selected_genres = st.sidebar.multiselect("Gênero", all_genres, default=[])
 
-# Studios
+# Estúdios
 top_studios = df['main_company'].value_counts().head(50).index.tolist()
 selected_studios = st.sidebar.multiselect("Estúdio", top_studios, default=[])
 
-# Apply filters
+# Aplicar filtros
 filtered_df = df[
     (df['release_year'] >= year_range[0]) &
     (df['release_year'] <= year_range[1])
@@ -123,7 +127,7 @@ if selected_studios:
 st.sidebar.markdown(f"**Filmes encontrados:** {len(filtered_df)} / {len(df)}")
 
 # ─────────────────────────────────────────────────────────────────
-# MAIN TABS
+# ABAS PRINCIPAIS
 # ─────────────────────────────────────────────────────────────────
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -136,7 +140,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 ])
 
 # ─────────────────────────────────────────────────────────────────
-# TAB 1: OVERVIEW
+# ABA 1: VISÃO GERAL
 # ─────────────────────────────────────────────────────────────────
 
 with tab1:
@@ -154,13 +158,13 @@ with tab1:
 
     st.divider()
 
-    # Scatter: Budget × Revenue
+    # Gráfico de Dispersão: Orçamento x Receita
     st.subheader("Budget × Revenue × Popularidade")
     scatter = px.scatter(
         filtered_df,
         x='budget', y='revenue',
         size='popularity', color='main_genre',
-        hover_name='title_x',
+        hover_name='title',
         hover_data={'budget': '$,.0f', 'revenue': '$,.0f', 'profit': '$,.0f'},
         title="Cada bolha: tamanho = popularidade, cor = gênero",
         labels={'budget': 'Budget (USD)', 'revenue': 'Receita (USD)'}
@@ -169,19 +173,20 @@ with tab1:
     st.plotly_chart(scatter, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────────
-# TAB 2: GENRES
+# ABA 2: GÊNEROS
 # ─────────────────────────────────────────────────────────────────
 
 with tab2:
     st.subheader("Análise por Gênero")
 
-    # Filter genres with >= 5 movies
+    # Filtrar gêneros com 5 ou mais filmes
     genre_stats = filtered_df.groupby('main_genre').agg({
-        'title_x': 'count',
+        'title': 'count',
         'profit': 'mean',
         'roi': 'mean',
         'vote_average': 'mean'
-    }).rename(columns={'title_x': 'count'})
+    }).rename(columns={'title': 'count'})
+
     genre_stats = genre_stats[genre_stats['count'] >= 5].sort_values('profit', ascending=True)
 
     if not genre_stats.empty:
@@ -219,17 +224,18 @@ with tab2:
         st.warning("Nenhum gênero encontrado com >= 5 filmes nos filtros selecionados.")
 
 # ─────────────────────────────────────────────────────────────────
-# TAB 3: STUDIOS
+# ABA 3: ESTÚDIOS
 # ─────────────────────────────────────────────────────────────────
 
 with tab3:
     st.subheader("Análise por Estúdio")
 
     studio_stats = filtered_df.groupby('main_company').agg({
-        'title_x': 'count',
+        'title': 'count',
         'profit': ['mean', 'sum'],
         'roi': 'mean'
-    }).rename(columns={'title_x': 'count'})
+    }).rename(columns={'title': 'count'})
+
     studio_stats.columns = ['count', 'profit_mean', 'profit_total', 'roi_mean']
     studio_stats = studio_stats[studio_stats['count'] >= 5].sort_values('profit_total', ascending=True).tail(10)
 
@@ -261,7 +267,7 @@ with tab3:
         st.warning("Nenhum estúdio encontrado com >= 5 filmes nos filtros selecionados.")
 
 # ─────────────────────────────────────────────────────────────────
-# TAB 4: TRENDS
+# ABA 4: TENDÊNCIAS
 # ─────────────────────────────────────────────────────────────────
 
 with tab4:
@@ -269,12 +275,12 @@ with tab4:
 
     col1, col2 = st.columns(2)
 
-    # Profit by year
+    # Lucro por ano
     with col1:
         yearly = filtered_df.groupby('release_year').agg({
             'profit': 'mean',
-            'title_x': 'count'
-        }).rename(columns={'title_x': 'count', 'profit': 'lucro_medio'})
+            'title': 'count'
+        }).rename(columns={'title': 'count', 'profit': 'lucro_medio'})
 
         fig_year = px.line(
             yearly, x=yearly.index, y='lucro_medio',
@@ -284,7 +290,7 @@ with tab4:
         fig_year.update_layout(height=400, template='plotly_white', hovermode='x unified')
         st.plotly_chart(fig_year, use_container_width=True)
 
-    # Releases by month
+    # Lançamentos por mês
     with col2:
         month_names = {1:'Jan', 2:'Fev', 3:'Mar', 4:'Abr', 5:'Mai', 6:'Jun',
                        7:'Jul', 8:'Ago', 9:'Set', 10:'Out', 11:'Nov', 12:'Dez'}
@@ -301,13 +307,13 @@ with tab4:
         st.plotly_chart(fig_month, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────────
-# TAB 5: CORRELATIONS
+# ABA 5: CORRELAÇÕES
 # ─────────────────────────────────────────────────────────────────
 
 with tab5:
     st.subheader("Matriz de Correlação — Pearson")
 
-    # Select numeric columns
+    # Selecionar colunas numéricas
     numeric_cols = ['budget', 'revenue', 'profit', 'roi', 'popularity', 'vote_average', 'vote_count', 'runtime']
     corr_df = filtered_df[numeric_cols].corr(method='pearson')
 
@@ -341,30 +347,37 @@ with tab5:
     """)
 
 # ─────────────────────────────────────────────────────────────────
-# TAB 6: ML PREDICTION
+# ABA 6: PREVISÃO VIA ML
 # ─────────────────────────────────────────────────────────────────
 
 with tab6:
     st.subheader("🤖 Previsão de Popularidade")
 
-    st.info("""
+    # Recuperando métricas dinâmicas do modelo treinado
+    mets = model_data.get('metricas', {})
+    acc = mets.get('acuracia', 0) * 100
+    prec = mets.get('precisao', 0) * 100
+    f1 = mets.get('f1_score', 0) * 100
+    rec = mets.get('recall', 0) * 100
+
+    st.info(f"""
     **Como funciona:**
-    O modelo Random Forest foi treinado com 3,229 filmes para prever se um filme
+    O modelo Random Forest (com PCA) foi treinado para prever se um filme
     terá **alta popularidade** (acima da mediana) ou **baixa popularidade**.
 
-    **Performance do modelo:**
-    - Acurácia: 86.53%
-    - Precisão: 86.20%
-    - F1-Score: 86.59%
-    - Recall: 87.00%
+    **Performance do modelo treinado:**
+    - Acurácia: {acc:.2f}%
+    - Precisão: {prec:.2f}%
+    - F1-Score: {f1:.2f}%
+    - Recall: {rec:.2f}%
     """)
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.subheader("📝 Entre com os dados do filme")
-        budget_input = st.number_input("Budget (USD)", value=50e6, step=1e6)
-        revenue_input = st.number_input("Receita (USD)", value=150e6, step=1e6)
+        budget_input = st.number_input("Budget (USD)", value=50000000, step=1000000)
+        revenue_input = st.number_input("Receita (USD)", value=150000000, step=1000000)
         runtime_input = st.number_input("Duração (minutos)", value=120, step=1)
         vote_avg_input = st.number_input("Nota Média (0-10)", value=7.0, step=0.1, min_value=0.0, max_value=10.0)
         vote_count_input = st.number_input("Quantidade de Votos", value=1000, step=100)
@@ -373,29 +386,21 @@ with tab6:
         st.subheader("🎯 Resultado da Previsão")
 
         if st.button("🔮 Fazer Previsão", use_container_width=True):
-            # Prepare input
+            # Formata os inputs em um array
             X_input = np.array([[budget_input, revenue_input, runtime_input, vote_avg_input, vote_count_input]])
 
-            # Get model components
-            scaler = pipeline['scaler']
-            pca = pipeline['pca']
-            model = pipeline['model']
+            # Carrega o Pipeline do Scikit-Learn e faz TUDO automaticamente
+            ml_pipeline = model_data['pipeline']
 
-            # Scale
-            X_scaled = scaler.transform(X_input)
+            # O pipeline aplica o Scaler, o PCA e o Random Forest de uma só vez
+            pred_proba = ml_pipeline.predict_proba(X_input)[0]
+            pred_class = ml_pipeline.predict(X_input)[0]
 
-            # PCA
-            X_pca = pca.transform(X_scaled)
+            # Informações adicionais
+            mediana_pop = model_data.get('mediana_popularidade', 11.16)
+            alta_prob = pred_proba[1] * 100
 
-            # Predict
-            pred_proba = model.predict_proba(X_pca)[0]
-            pred_class = model.predict(X_pca)[0]
-
-            # Get prediction info
-            mediana_pop = pipeline.get('mediana_popularidade', 11.16)
-            alta_prob = pred_proba[1] * 100  # Probability of high popularity (class 1)
-
-            # Display gauge
+            # Exibição gráfica gauge
             fig_gauge = go.Figure(go.Indicator(
                 mode="gauge+number+delta",
                 value=alta_prob,
@@ -421,10 +426,10 @@ with tab6:
             fig_gauge.update_layout(height=400)
             st.plotly_chart(fig_gauge, use_container_width=True)
 
-            # Result interpretation
+            # Interpretação de resultado
             if pred_class == 1:
-                st.success(f"✅ **Alta Popularidade Prevista** ({alta_prob:.1f}% de confiança)")
+                st.success(f"✅ **Alta Popularidade Prevista** ({alta_prob:.1f}% de probabilidade)")
             else:
-                st.warning(f"⚠️ **Baixa Popularidade Prevista** ({(100-alta_prob):.1f}% de confiança)")
+                st.warning(f"⚠️ **Baixa Popularidade Prevista** ({(100-alta_prob):.1f}% de probabilidade)")
 
-            st.metric("Mediana de Popularidade (Treino)", f"{mediana_pop:.2f}")
+            st.metric("Mediana de Popularidade base (Treino)", f"{mediana_pop:.2f}")
