@@ -54,12 +54,12 @@ def load_data():
     df['release_year'] = df['release_date'].dt.year
     df['release_month'] = df['release_date'].dt.month
 
-    # Métricas financeiras
-    df['profit'] = df['revenue'] - df['budget']
-    df['roi'] = np.where(df['budget'] > 0, (df['profit'] / df['budget']) * 100, 0)
+    # Vamos considerar apenas filmes com orçamento realista (maior que 100 mil dólares)
+    df = df[(df['budget'] >= 100000) & (df['revenue'] > 0)].copy()
 
-    # Filtrar para dados financeiros válidos
-    df = df[(df['budget'] > 0) & (df['revenue'] > 0)].copy()
+    # Financial metrics
+    df['profit'] = df['revenue'] - df['budget']
+    df['roi'] = (df['profit'] / df['budget']) * 100
 
     return df
 
@@ -89,7 +89,7 @@ st.markdown("Análise de dados de filmes com previsão de popularidade")
 # ─────────────────────────────────────────────────────────────────
 
 df = load_data()
-pipeline = load_model()
+model_data = load_model()
 
 # ─────────────────────────────────────────────────────────────────
 # FILTROS DA BARRA LATERAL
@@ -162,7 +162,7 @@ with tab1:
         filtered_df,
         x='budget', y='revenue',
         size='popularity', color='main_genre',
-        hover_name='title_x',
+        hover_name='title',  # Corrigido para 'title'
         hover_data={'budget': '$,.0f', 'revenue': '$,.0f', 'profit': '$,.0f'},
         title="Cada bolha: tamanho = popularidade, cor = gênero",
         labels={'budget': 'Budget (USD)', 'revenue': 'Receita (USD)'}
@@ -179,11 +179,12 @@ with tab2:
 
     # Filtrar gêneros com 5 ou mais filmes
     genre_stats = filtered_df.groupby('main_genre').agg({
-        'title_x': 'count',
+        'title': 'count',  # Corrigido para 'title'
         'profit': 'mean',
         'roi': 'mean',
         'vote_average': 'mean'
-    }).rename(columns={'title_x': 'count'})
+    }).rename(columns={'title': 'count'}) # Corrigido para 'title'
+    
     genre_stats = genre_stats[genre_stats['count'] >= 5].sort_values('profit', ascending=True)
 
     if not genre_stats.empty:
@@ -228,10 +229,11 @@ with tab3:
     st.subheader("Análise por Estúdio")
 
     studio_stats = filtered_df.groupby('main_company').agg({
-        'title_x': 'count',
+        'title': 'count',  # Corrigido para 'title'
         'profit': ['mean', 'sum'],
         'roi': 'mean'
-    }).rename(columns={'title_x': 'count'})
+    }).rename(columns={'title': 'count'})  # Corrigido para 'title'
+    
     studio_stats.columns = ['count', 'profit_mean', 'profit_total', 'roi_mean']
     studio_stats = studio_stats[studio_stats['count'] >= 5].sort_values('profit_total', ascending=True).tail(10)
 
@@ -275,8 +277,8 @@ with tab4:
     with col1:
         yearly = filtered_df.groupby('release_year').agg({
             'profit': 'mean',
-            'title_x': 'count'
-        }).rename(columns={'title_x': 'count', 'profit': 'lucro_medio'})
+            'title': 'count'  # Corrigido para 'title'
+        }).rename(columns={'title': 'count', 'profit': 'lucro_medio'})  # Corrigido para 'title'
 
         fig_year = px.line(
             yearly, x=yearly.index, y='lucro_medio',
@@ -338,24 +340,31 @@ with tab5:
 with tab6:
     st.subheader("🤖 Previsão de Popularidade")
 
-    st.info("""
+    # Recuperando métricas dinâmicas do modelo treinado
+    mets = model_data.get('metricas', {})
+    acc = mets.get('acuracia', 0) * 100
+    prec = mets.get('precisao', 0) * 100
+    f1 = mets.get('f1_score', 0) * 100
+    rec = mets.get('recall', 0) * 100
+
+    st.info(f"""
     **Como funciona:**
-    O modelo Random Forest foi treinado com 3,229 filmes para prever se um filme
+    O modelo Random Forest (com PCA) foi treinado para prever se um filme
     terá **alta popularidade** (acima da mediana) ou **baixa popularidade**.
 
-    **Performance do modelo:**
-    - Acurácia: 86.53%
-    - Precisão: 86.20%
-    - F1-Score: 86.59%
-    - Recall: 87.00%
+    **Performance do modelo treinado:**
+    - Acurácia: {acc:.2f}%
+    - Precisão: {prec:.2f}%
+    - F1-Score: {f1:.2f}%
+    - Recall: {rec:.2f}%
     """)
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.subheader("📝 Entre com os dados do filme")
-        budget_input = st.number_input("Budget (USD)", value=50e6, step=1e6)
-        revenue_input = st.number_input("Receita (USD)", value=150e6, step=1e6)
+        budget_input = st.number_input("Budget (USD)", value=50000000, step=1000000)
+        revenue_input = st.number_input("Receita (USD)", value=150000000, step=1000000)
         runtime_input = st.number_input("Duração (minutos)", value=120, step=1)
         vote_avg_input = st.number_input("Nota Média (0-10)", value=7.0, step=0.1, min_value=0.0, max_value=10.0)
         vote_count_input = st.number_input("Quantidade de Votos", value=1000, step=100)
@@ -364,26 +373,18 @@ with tab6:
         st.subheader("🎯 Resultado da Previsão")
 
         if st.button("🔮 Fazer Previsão", use_container_width=True):
-            # Preparar entrada
+            # Formata os inputs em um array
             X_input = np.array([[budget_input, revenue_input, runtime_input, vote_avg_input, vote_count_input]])
 
-            # Obter componentes do modelo
-            scaler = pipeline['scaler']
-            pca = pipeline['pca']
-            model = pipeline['model']
+            # Carrega o Pipeline do Scikit-Learn e faz TUDO automaticamente
+            ml_pipeline = model_data['pipeline']
+            
+            # O pipeline aplica o Scaler, o PCA e o Random Forest de uma só vez
+            pred_proba = ml_pipeline.predict_proba(X_input)[0]
+            pred_class = ml_pipeline.predict(X_input)[0]
 
-            # Escalonamento de variáveis
-            X_scaled = scaler.transform(X_input)
-
-            # PCA - Redução de Componentes
-            X_pca = pca.transform(X_scaled)
-
-            # Realizar a predição
-            pred_proba = model.predict_proba(X_pca)[0]
-            pred_class = model.predict(X_pca)[0]
-
-            # Obter informações de predição
-            mediana_pop = pipeline.get('mediana_popularidade', 11.16)
+            # Informações adicionais
+            mediana_pop = model_data.get('mediana_popularidade', 11.16)
             alta_prob = pred_proba[1] * 100  # Probability of high popularity (class 1)
 
             # Exibição gráfica gauge
@@ -414,8 +415,8 @@ with tab6:
 
             # Interpretação de resultado
             if pred_class == 1:
-                st.success(f"✅ **Alta Popularidade Prevista** ({alta_prob:.1f}% de confiança)")
+                st.success(f"✅ **Alta Popularidade Prevista** ({alta_prob:.1f}% de probabilidade)")
             else:
-                st.warning(f"⚠️ **Baixa Popularidade Prevista** ({(100-alta_prob):.1f}% de confiança)")
+                st.warning(f"⚠️ **Baixa Popularidade Prevista** ({(100-alta_prob):.1f}% de probabilidade)")
 
-            st.metric("Mediana de Popularidade (Treino)", f"{mediana_pop:.2f}")
+            st.metric("Mediana de Popularidade base (Treino)", f"{mediana_pop:.2f}")
