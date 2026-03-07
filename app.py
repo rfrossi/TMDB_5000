@@ -2,8 +2,8 @@
 Streamlit Dashboard — TMDB 5000 Movies Analysis & Popularity Prediction
 
 Módulo de Interface Interativa e Visualização (Card 5).
-Consolida os insights da Análise Exploratória (EDA - Card 3) 
-e integra a predição gerada pelo modelo Random Forest (Card 4), 
+Consolida os insights da Análise Exploratória (EDA - Card 3)
+e integra a predição gerada pelo modelo Random Forest (Card 4),
 permitindo que o usuário explore métricas e tendências dinamicamente.
 """
 
@@ -12,6 +12,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import seaborn as sns
 import joblib
 import ast
 import warnings
@@ -162,7 +164,7 @@ with tab1:
         filtered_df,
         x='budget', y='revenue',
         size='popularity', color='main_genre',
-        hover_name='title',  # Corrigido para 'title'
+        hover_name='title',
         hover_data={'budget': '$,.0f', 'revenue': '$,.0f', 'profit': '$,.0f'},
         title="Cada bolha: tamanho = popularidade, cor = gênero",
         labels={'budget': 'Budget (USD)', 'revenue': 'Receita (USD)'}
@@ -179,12 +181,12 @@ with tab2:
 
     # Filtrar gêneros com 5 ou mais filmes
     genre_stats = filtered_df.groupby('main_genre').agg({
-        'title': 'count',  # Corrigido para 'title'
+        'title': 'count',
         'profit': 'mean',
         'roi': 'mean',
         'vote_average': 'mean'
-    }).rename(columns={'title': 'count'}) # Corrigido para 'title'
-    
+    }).rename(columns={'title': 'count'})
+
     genre_stats = genre_stats[genre_stats['count'] >= 5].sort_values('profit', ascending=True)
 
     if not genre_stats.empty:
@@ -229,11 +231,11 @@ with tab3:
     st.subheader("Análise por Estúdio")
 
     studio_stats = filtered_df.groupby('main_company').agg({
-        'title': 'count',  # Corrigido para 'title'
+        'title': 'count',
         'profit': ['mean', 'sum'],
         'roi': 'mean'
-    }).rename(columns={'title': 'count'})  # Corrigido para 'title'
-    
+    }).rename(columns={'title': 'count'})
+
     studio_stats.columns = ['count', 'profit_mean', 'profit_total', 'roi_mean']
     studio_stats = studio_stats[studio_stats['count'] >= 5].sort_values('profit_total', ascending=True).tail(10)
 
@@ -277,8 +279,8 @@ with tab4:
     with col1:
         yearly = filtered_df.groupby('release_year').agg({
             'profit': 'mean',
-            'title': 'count'  # Corrigido para 'title'
-        }).rename(columns={'title': 'count', 'profit': 'lucro_medio'})  # Corrigido para 'title'
+            'title': 'count'
+        }).rename(columns={'title': 'count', 'profit': 'lucro_medio'})
 
         fig_year = px.line(
             yearly, x=yearly.index, y='lucro_medio',
@@ -315,22 +317,33 @@ with tab5:
     numeric_cols = ['budget', 'revenue', 'profit', 'roi', 'popularity', 'vote_average', 'vote_count', 'runtime']
     corr_df = filtered_df[numeric_cols].corr(method='pearson')
 
-    fig_corr = px.imshow(
+    fig_corr, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(
         corr_df,
-        color_continuous_scale='RdBu_r', color_continuous_midpoint=0,
-        zmin=-1, zmax=1,
-        title="Correlação entre Métricas (Pearson)",
-        labels={'color': 'Correlação'},
-        aspect='auto'
+        annot=True,
+        fmt='.2f',
+        cmap='coolwarm',
+        vmin=-1,
+        vmax=1,
+        center=0,
+        linewidths=0.5,
+        linecolor='white',
+        square=True,
+        ax=ax,
+        annot_kws={'size': 10}
     )
-    fig_corr.update_layout(height=600, width=800)
-    st.plotly_chart(fig_corr, use_container_width=True)
+    ax.set_title("Correlação entre Métricas (Pearson)", fontsize=14, pad=16)
+    ax.tick_params(axis='x', rotation=45, labelsize=10)
+    ax.tick_params(axis='y', rotation=0, labelsize=10)
+    plt.tight_layout()
+    st.pyplot(fig_corr, use_container_width=True)
+    plt.close(fig_corr)
 
     st.info("""
     **Interpretação:**
-    - Vermelho: correlação positiva (aumentam juntas)
-    - Azul: correlação negativa (variam inversamente)
-    - Branco: sem correlação
+    - Vermelho intenso: correlação positiva forte (próxima de +1)
+    - Azul intenso: correlação negativa forte (próxima de -1)
+    - Branco/neutro: sem correlação (próxima de 0)
     """)
 
 # ─────────────────────────────────────────────────────────────────
@@ -378,14 +391,14 @@ with tab6:
 
             # Carrega o Pipeline do Scikit-Learn e faz TUDO automaticamente
             ml_pipeline = model_data['pipeline']
-            
+
             # O pipeline aplica o Scaler, o PCA e o Random Forest de uma só vez
             pred_proba = ml_pipeline.predict_proba(X_input)[0]
             pred_class = ml_pipeline.predict(X_input)[0]
 
             # Informações adicionais
             mediana_pop = model_data.get('mediana_popularidade', 11.16)
-            alta_prob = pred_proba[1] * 100  # Probability of high popularity (class 1)
+            alta_prob = pred_proba[1] * 100
 
             # Exibição gráfica gauge
             fig_gauge = go.Figure(go.Indicator(
