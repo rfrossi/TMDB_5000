@@ -68,8 +68,8 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    """Load Random Forest pipeline."""
-    return joblib.load(BASE_DIR / 'models' / 'random_forest_model.pkl')
+    """Load Random Forest ROI pipeline."""
+    return joblib.load(BASE_DIR / 'models' / 'random_forest_roi.pkl')
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ st.set_page_config(
 )
 
 st.title("🎬 TMDB 5000 — Dashboard Interativo")
-st.markdown("Análise de dados de filmes com previsão de popularidade")
+st.markdown("Análise de dados de filmes com previsão de ROI")
 
 # ─────────────────────────────────────────────────────────────────
 # CARREGAR DADOS
@@ -351,85 +351,113 @@ with tab5:
 # ─────────────────────────────────────────────────────────────────
 
 with tab6:
-    st.subheader("🤖 Previsão de Popularidade")
+    st.subheader("🤖 Previsão de ROI")
 
     # Recuperando métricas dinâmicas do modelo treinado
     mets = model_data.get('metricas', {})
-    acc = mets.get('acuracia', 0) * 100
-    prec = mets.get('precisao', 0) * 100
-    f1 = mets.get('f1_score', 0) * 100
-    rec = mets.get('recall', 0) * 100
+    mae = mets.get('mae', 0)
+    rmse = mets.get('rmse', 0)
+    r2 = mets.get('r2', 0)
+    cv_r2 = mets.get('cv_r2_media', 0)
+    cv_r2_std = mets.get('cv_r2_std', 0)
 
     st.info(f"""
     **Como funciona:**
-    O modelo Random Forest (com PCA) foi treinado para prever se um filme
-    terá **alta popularidade** (acima da mediana) ou **baixa popularidade**.
+    O modelo Random Forest (com PCA) prevê o **ROI esperado** de um filme com base exclusivamente
+    em variáveis conhecidas **antes** da obra existir: gênero principal, mês de estreia,
+    orçamento e duração.
 
-    **Performance do modelo treinado:**
-    - Acurácia: {acc:.2f}%
-    - Precisão: {prec:.2f}%
-    - F1-Score: {f1:.2f}%
-    - Recall: {rec:.2f}%
+    Diferente da versão anterior, este modelo **não utiliza receita, nota ou votos** —
+    variáveis que só existem após o lançamento — eliminando o vazamento de dados (data leakage).
+    O target é transformado em escala logarítmica (log1p) para lidar com a alta variância do ROI.
+
+    **Performance do modelo (escala log, R²):** {r2:.4f}  |  CV R²: {cv_r2:.4f} ± {cv_r2_std:.4f}
+
+    > O R² baixo reflete a alta variabilidade intrínseca do ROI no cinema.
+    > A previsão expressa a tendência central histórica para o perfil selecionado.
     """)
 
     col1, col2 = st.columns(2)
 
+    # Recuperar lista de gêneros do modelo salvo
+    genres_list = model_data.get('genres_list', [])
+    genre_to_code = model_data.get('genre_to_code', {})
+
+    month_names = {
+        1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+        5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+        9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+    }
+
     with col1:
-        st.subheader("📝 Entre com os dados do filme")
-        budget_input = st.number_input("Budget (USD)", value=50000000, step=1000000)
-        revenue_input = st.number_input("Receita (USD)", value=150000000, step=1000000)
-        runtime_input = st.number_input("Duração (minutos)", value=120, step=1)
-        vote_avg_input = st.number_input("Nota Média (0-10)", value=7.0, step=0.1, min_value=0.0, max_value=10.0)
-        vote_count_input = st.number_input("Quantidade de Votos", value=1000, step=100)
+        st.subheader("📝 Planejamento do Filme")
+        genre_input = st.selectbox(
+            "Gênero Principal",
+            options=genres_list if genres_list else ['Action', 'Drama', 'Comedy'],
+        )
+        month_input = st.selectbox(
+            "Mês de Estreia",
+            options=list(month_names.keys()),
+            format_func=lambda m: month_names[m],
+            index=5  # Junho como padrão
+        )
+        budget_input = st.number_input("Orçamento (USD)", value=50_000_000, step=1_000_000, min_value=1)
+        runtime_input = st.number_input("Duração (minutos)", value=120, step=1, min_value=1)
 
     with col2:
         st.subheader("🎯 Resultado da Previsão")
 
-        if st.button("🔮 Fazer Previsão", use_container_width=True):
-            # Formata os inputs em um array
-            X_input = np.array([[budget_input, revenue_input, runtime_input, vote_avg_input, vote_count_input]])
+        if st.button("🔮 Prever ROI", use_container_width=True):
+            genre_code = genre_to_code.get(genre_input, 0)
+            X_input = np.array([[budget_input, runtime_input, month_input, genre_code]])
 
-            # Carrega o Pipeline do Scikit-Learn e faz TUDO automaticamente
             ml_pipeline = model_data['pipeline']
+            pred_log = float(ml_pipeline.predict(X_input)[0])
+            # Inverter transformação log1p(roi+100): expm1(pred) - 100
+            roi_previsto = float(np.expm1(pred_log) - 100)
+            # Clampar para faixa exibível no gauge (evita valores astronômicos de outliers)
+            roi_display = float(np.clip(roi_previsto, -100, 1500))
 
-            # O pipeline aplica o Scaler, o PCA e o Random Forest de uma só vez
-            pred_proba = ml_pipeline.predict_proba(X_input)[0]
-            pred_class = ml_pipeline.predict(X_input)[0]
+            # Gauge de ROI — range de -100% a 1500%
+            gauge_min, gauge_max = -100, 1500
+            bar_color = "#2ecc71" if roi_display >= 0 else "#e74c3c"
 
-            # Informações adicionais
-            mediana_pop = model_data.get('mediana_popularidade', 11.16)
-            alta_prob = pred_proba[1] * 100
-
-            # Exibição gráfica gauge
             fig_gauge = go.Figure(go.Indicator(
                 mode="gauge+number+delta",
-                value=alta_prob,
-                title={'text': "Probabilidade de Alta Popularidade"},
-                delta={'reference': 50},
+                value=roi_display,
+                title={'text': f"ROI Esperado — {genre_input} | {month_names[month_input]}"},
+                delta={'reference': 0, 'increasing': {'color': '#2ecc71'}, 'decreasing': {'color': '#e74c3c'}},
                 gauge={
-                    'axis': {'range': [0, 100]},
-                    'bar': {'color': "darkblue"},
+                    'axis': {'range': [gauge_min, gauge_max]},
+                    'bar': {'color': bar_color},
                     'steps': [
-                        {'range': [0, 25], 'color': "#e8f4f8"},
-                        {'range': [25, 50], 'color': "#b3d9e6"},
-                        {'range': [50, 75], 'color': "#7fb3d5"},
-                        {'range': [75, 100], 'color': "#2874a6"}
+                        {'range': [-100, 0],    'color': "#fadbd8"},
+                        {'range': [0, 100],     'color': "#fef9e7"},
+                        {'range': [100, 500],   'color': "#d5f5e3"},
+                        {'range': [500, 1500],  'color': "#a9dfbf"}
                     ],
                     'threshold': {
-                        'line': {'color': "red", 'width': 4},
+                        'line': {'color': "black", 'width': 3},
                         'thickness': 0.75,
-                        'value': 50
+                        'value': 0
                     }
                 },
-                number={'suffix': "%"}
+                number={'suffix': "%", 'valueformat': '.1f'}
             ))
             fig_gauge.update_layout(height=400)
             st.plotly_chart(fig_gauge, use_container_width=True)
 
-            # Interpretação de resultado
-            if pred_class == 1:
-                st.success(f"✅ **Alta Popularidade Prevista** ({alta_prob:.1f}% de probabilidade)")
+            # Interpretação textual
+            if roi_previsto >= 100:
+                st.success(f"✅ **ROI Previsto: {roi_previsto:.1f}%** — Retorno acima do dobro do investimento.")
+            elif roi_previsto >= 0:
+                st.info(f"ℹ️ **ROI Previsto: {roi_previsto:.1f}%** — Retorno positivo, porém abaixo de 100%.")
             else:
-                st.warning(f"⚠️ **Baixa Popularidade Prevista** ({(100-alta_prob):.1f}% de probabilidade)")
+                st.warning(f"⚠️ **ROI Previsto: {roi_previsto:.1f}%** — Modelo indica risco de prejuízo.")
 
-            st.metric("Mediana de Popularidade base (Treino)", f"{mediana_pop:.2f}")
+            lucro_estimado = budget_input * roi_previsto / 100
+            st.metric(
+                "Lucro Estimado",
+                f"${lucro_estimado:,.0f}",
+                delta=f"{roi_previsto:.1f}% sobre o orçamento"
+            )
