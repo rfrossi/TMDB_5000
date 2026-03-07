@@ -154,12 +154,12 @@ with tab1:
     with col3:
         st.metric("⭐ Nota Média", f"{filtered_df['vote_average'].mean():.2f}/10")
     with col4:
-        st.metric("💵 Budget Médio", f"${filtered_df['budget'].mean()/1e6:.2f}M")
+        st.metric("💵 Orçamento Médio", f"${filtered_df['budget'].mean()/1e6:.2f}M")
 
     st.divider()
 
     # Gráfico de Dispersão: Orçamento x Receita
-    st.subheader("Budget × Revenue × Popularidade")
+    st.subheader("Orçamento × Receita × Popularidade")
     scatter = px.scatter(
         filtered_df,
         x='budget', y='revenue',
@@ -167,7 +167,13 @@ with tab1:
         hover_name='title',
         hover_data={'budget': '$,.0f', 'revenue': '$,.0f', 'profit': '$,.0f'},
         title="Cada bolha: tamanho = popularidade, cor = gênero",
-        labels={'budget': 'Budget (USD)', 'revenue': 'Receita (USD)'}
+        labels={
+            'budget': 'Orçamento (USD)', 
+            'revenue': 'Receita (USD)',
+            'profit': 'Lucro (USD)',
+            'popularity': 'Popularidade',
+            'main_genre': 'Gênero'
+        }
     )
     scatter.update_layout(height=600, template='plotly_white', hovermode='closest')
     st.plotly_chart(scatter, use_container_width=True)
@@ -196,7 +202,7 @@ with tab2:
         with col1:
             fig_profit = px.bar(
                 genre_stats, x='profit', y=genre_stats.index, orientation='h', color='profit',
-                labels={'profit': 'Lucro Médio (USD)'},
+                labels={'profit': 'Lucro Médio (USD)', 'main_genre': 'Gênero'},
                 title="Lucro Médio por Gênero",
                 color_continuous_scale='Turbo'
             )
@@ -207,8 +213,8 @@ with tab2:
         with col2:
             fig_roi = px.bar(
                 genre_stats, x='roi', y=genre_stats.index, orientation='h', color='roi',
-                labels={'roi': 'ROI Médio (%)'},
-                title="ROI Médio por Gênero",
+                labels={'roi': 'Retorno sobre Investimento Médio (%)', 'main_genre': 'Gênero'},
+                title="Retorno sobre Investimento Médio por Gênero",
                 color_continuous_scale='Viridis'
             )
             fig_roi.update_layout(height=400, template='plotly_white', showlegend=False)
@@ -216,8 +222,18 @@ with tab2:
 
         # Tabela detalhada
         st.subheader("Estatísticas Detalhadas")
+        
+        # Display data with translated columns
+        display_df = genre_stats.round(2).sort_values('profit', ascending=False).rename(columns={
+            'count': 'Contagem',
+            'profit': 'Lucro Médio (USD)',
+            'roi': 'Retorno sobre Investimento (%)',
+            'vote_average': 'Nota Média'
+        })
+        display_df.index.name = 'Gênero'
+        
         st.dataframe(
-            genre_stats.round(2).sort_values('profit', ascending=False),
+            display_df,
             use_container_width=True
         )
     else:
@@ -246,7 +262,7 @@ with tab3:
         with col1:
             fig_total = px.bar(
                 studio_stats, x='profit_total', y=studio_stats.index, orientation='h', color='profit_total',
-                labels={'profit_total': 'Lucro Total (USD)'},
+                labels={'profit_total': 'Lucro Total (USD)', 'main_company': 'Estúdio'},
                 title="Top 10 Estúdios — Lucro Total",
                 color_continuous_scale='Reds'
             )
@@ -257,8 +273,8 @@ with tab3:
         with col2:
             fig_roi_studio = px.bar(
                 studio_stats, x='roi_mean', y=studio_stats.index, orientation='h', color='roi_mean',
-                labels={'roi_mean': 'ROI Médio (%)'},
-                title="Top 10 Estúdios — ROI Médio",
+                labels={'roi_mean': 'Retorno sobre Investimento Médio (%)', 'main_company': 'Estúdio'},
+                title="Top 10 Estúdios — Retorno sobre Investimento Médio",
                 color_continuous_scale='Blues'
             )
             fig_roi_studio.update_layout(height=400, template='plotly_white', showlegend=False)
@@ -316,6 +332,19 @@ with tab5:
     # Selecionar colunas numéricas
     numeric_cols = ['budget', 'revenue', 'profit', 'roi', 'popularity', 'vote_average', 'vote_count', 'runtime']
     corr_df = filtered_df[numeric_cols].corr(method='pearson')
+    
+    # Traduzir nomes para o heatmap
+    col_names_pt = {
+        'budget': 'Orçamento',
+        'revenue': 'Receita',
+        'profit': 'Lucro',
+        'roi': 'Retorno sobre Invest.',
+        'popularity': 'Popularidade',
+        'vote_average': 'Nota Média',
+        'vote_count': 'Qtd. Votos',
+        'runtime': 'Duração'
+    }
+    corr_df.rename(columns=col_names_pt, index=col_names_pt, inplace=True)
 
     fig_corr, ax = plt.subplots(figsize=(10, 8))
     sns.heatmap(
@@ -353,35 +382,35 @@ with tab5:
 with tab6:
     st.subheader("🤖 Previsão de ROI")
 
-    # Recuperando métricas dinâmicas do modelo treinado
     mets = model_data.get('metricas', {})
-    mae = mets.get('mae', 0)
-    rmse = mets.get('rmse', 0)
-    r2 = mets.get('r2', 0)
-    cv_r2 = mets.get('cv_r2_media', 0)
-    cv_r2_std = mets.get('cv_r2_std', 0)
+    r2      = mets.get('r2', 0)
+    cv_r2   = mets.get('cv_r2_media', 0)
+    cv_std  = mets.get('cv_r2_std', 0)
 
     st.info(f"""
     **Como funciona:**
-    O modelo Random Forest (com PCA) prevê o **ROI esperado** de um filme com base exclusivamente
-    em variáveis conhecidas **antes** da obra existir: gênero principal, mês de estreia,
-    orçamento e duração.
+    O modelo Random Forest (com PCA) prevê o **ROI esperado** com base exclusivamente em
+    variáveis conhecidas **antes** da obra existir — sem receita, nota ou votos (sem data leakage).
 
-    Diferente da versão anterior, este modelo **não utiliza receita, nota ou votos** —
-    variáveis que só existem após o lançamento — eliminando o vazamento de dados (data leakage).
-    O target é transformado em escala logarítmica (log1p) para lidar com a alta variância do ROI.
+    **Features utilizadas:** orçamento (escala log), duração, mês, sazonalidade de férias,
+    histórico ROI do diretor, histórico ROI do ator principal, porte do estúdio,
+    se é sequência, e {len(model_data.get('top_genres', []))} gêneros em one-hot.
 
-    **Performance do modelo (escala log, R²):** {r2:.4f}  |  CV R²: {cv_r2:.4f} ± {cv_r2_std:.4f}
+    **Performance — R² (escala log):** `{r2:.4f}` | CV R²: `{cv_r2:.4f} ± {cv_std:.4f}`
 
-    > O R² baixo reflete a alta variabilidade intrínseca do ROI no cinema.
-    > A previsão expressa a tendência central histórica para o perfil selecionado.
+    > Quanto mais próximo de 1.0, melhor. O target encoding de diretor/ator é o principal
+    > preditor — reflete o histórico de retorno de cada profissional no dataset.
     """)
 
-    col1, col2 = st.columns(2)
-
-    # Recuperar lista de gêneros do modelo salvo
-    genres_list = model_data.get('genres_list', [])
-    genre_to_code = model_data.get('genre_to_code', {})
+    # ── Recuperar metadados do modelo ──────────────────────────────
+    top_genres      = model_data.get('top_genres', [])
+    genre_columns   = model_data.get('genre_columns', [])
+    director_enc    = model_data.get('director_encoding', {})
+    cast_enc        = model_data.get('cast_encoding', {})
+    top_studios     = model_data.get('top_studios', [])
+    global_mean_log = model_data.get('global_roi_log_mean', 5.3)
+    directors_ui    = ['Novo Diretor (estreante)'] + model_data.get('top_directors_ui', [])
+    actors_ui       = ['Sem estrela conhecida'] + model_data.get('top_actors_ui', [])
 
     month_names = {
         1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
@@ -389,52 +418,76 @@ with tab6:
         9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
     }
 
+    col1, col2 = st.columns(2)
+
     with col1:
         st.subheader("📝 Planejamento do Filme")
-        genre_input = st.selectbox(
-            "Gênero Principal",
-            options=genres_list if genres_list else ['Action', 'Drama', 'Comedy'],
-        )
-        month_input = st.selectbox(
+
+        budget_input  = st.number_input("Orçamento (USD)", value=50_000_000, step=1_000_000, min_value=1)
+        runtime_input = st.number_input("Duração (minutos)", value=120, step=1, min_value=1)
+        month_input   = st.selectbox(
             "Mês de Estreia",
             options=list(month_names.keys()),
             format_func=lambda m: month_names[m],
-            index=5  # Junho como padrão
+            index=5
         )
-        budget_input = st.number_input("Orçamento (USD)", value=50_000_000, step=1_000_000, min_value=1)
-        runtime_input = st.number_input("Duração (minutos)", value=120, step=1, min_value=1)
+        genres_input  = st.multiselect(
+            "Gênero(s)",
+            options=top_genres,
+            default=[top_genres[3]] if len(top_genres) > 3 else top_genres[:1]
+        )
+        director_input = st.selectbox("Diretor", options=directors_ui)
+        actor_input    = st.selectbox("Ator Principal", options=actors_ui)
+        studio_input   = st.selectbox(
+            "Estúdio",
+            options=['Estúdio Independente'] + top_studios
+        )
+        is_sequel_input = st.checkbox("É uma sequência / franquia?")
 
     with col2:
         st.subheader("🎯 Resultado da Previsão")
 
         if st.button("🔮 Prever ROI", use_container_width=True):
-            genre_code = genre_to_code.get(genre_input, 0)
-            X_input = np.array([[budget_input, runtime_input, month_input, genre_code]])
 
-            ml_pipeline = model_data['pipeline']
-            pred_log = float(ml_pipeline.predict(X_input)[0])
-            # Inverter transformação log1p(roi+100): expm1(pred) - 100
+            # ── Montar vetor de features na ordem exata do treinamento ──
+            director_val = director_enc.get(director_input, global_mean_log)
+            cast_val     = cast_enc.get(actor_input, global_mean_log)
+            top_studio_f = 1 if studio_input in top_studios else 0
+            genre_flags  = [1 if g in genres_input else 0 for g in top_genres]
+
+            X_input = np.array([[
+                np.log1p(budget_input),         # log_budget
+                runtime_input,                   # runtime
+                month_input,                     # release_month
+                1 if month_input in [6, 7, 12] else 0,  # is_blockbuster_season
+                director_val,                    # director_roi_encoded
+                cast_val,                        # cast_roi_encoded
+                top_studio_f,                    # top_studio
+                int(is_sequel_input),            # is_sequel
+            ] + genre_flags])
+
+            ml_pipeline  = model_data['pipeline']
+            pred_log     = float(ml_pipeline.predict(X_input)[0])
             roi_previsto = float(np.expm1(pred_log) - 100)
-            # Clampar para faixa exibível no gauge (evita valores astronômicos de outliers)
-            roi_display = float(np.clip(roi_previsto, -100, 1500))
+            roi_display  = float(np.clip(roi_previsto, -100, 1500))
 
-            # Gauge de ROI — range de -100% a 1500%
-            gauge_min, gauge_max = -100, 1500
             bar_color = "#2ecc71" if roi_display >= 0 else "#e74c3c"
 
             fig_gauge = go.Figure(go.Indicator(
                 mode="gauge+number+delta",
                 value=roi_display,
-                title={'text': f"ROI Esperado — {genre_input} | {month_names[month_input]}"},
-                delta={'reference': 0, 'increasing': {'color': '#2ecc71'}, 'decreasing': {'color': '#e74c3c'}},
+                title={'text': f"ROI Esperado — {', '.join(genres_input) or '—'} | {month_names[month_input]}"},
+                delta={'reference': 0,
+                       'increasing': {'color': '#2ecc71'},
+                       'decreasing': {'color': '#e74c3c'}},
                 gauge={
-                    'axis': {'range': [gauge_min, gauge_max]},
+                    'axis': {'range': [-100, 1500]},
                     'bar': {'color': bar_color},
                     'steps': [
-                        {'range': [-100, 0],    'color': "#fadbd8"},
-                        {'range': [0, 100],     'color': "#fef9e7"},
-                        {'range': [100, 500],   'color': "#d5f5e3"},
-                        {'range': [500, 1500],  'color': "#a9dfbf"}
+                        {'range': [-100, 0],   'color': "#fadbd8"},
+                        {'range': [0, 100],    'color': "#fef9e7"},
+                        {'range': [100, 500],  'color': "#d5f5e3"},
+                        {'range': [500, 1500], 'color': "#a9dfbf"}
                     ],
                     'threshold': {
                         'line': {'color': "black", 'width': 3},
@@ -447,11 +500,10 @@ with tab6:
             fig_gauge.update_layout(height=400)
             st.plotly_chart(fig_gauge, use_container_width=True)
 
-            # Interpretação textual
             if roi_previsto >= 100:
                 st.success(f"✅ **ROI Previsto: {roi_previsto:.1f}%** — Retorno acima do dobro do investimento.")
             elif roi_previsto >= 0:
-                st.info(f"ℹ️ **ROI Previsto: {roi_previsto:.1f}%** — Retorno positivo, porém abaixo de 100%.")
+                st.info(f"ℹ️ **ROI Previsto: {roi_previsto:.1f}%** — Retorno positivo, abaixo de 100%.")
             else:
                 st.warning(f"⚠️ **ROI Previsto: {roi_previsto:.1f}%** — Modelo indica risco de prejuízo.")
 
@@ -461,3 +513,16 @@ with tab6:
                 f"${lucro_estimado:,.0f}",
                 delta=f"{roi_previsto:.1f}% sobre o orçamento"
             )
+
+            with st.expander("🔍 Detalhes das features utilizadas"):
+                st.write({
+                    "log_budget":             round(float(np.log1p(budget_input)), 4),
+                    "runtime":                runtime_input,
+                    "release_month":          month_input,
+                    "is_blockbuster_season":  1 if month_input in [6, 7, 12] else 0,
+                    "director_roi_encoded":   round(director_val, 4),
+                    "cast_roi_encoded":       round(cast_val, 4),
+                    "top_studio":             top_studio_f,
+                    "is_sequel":              int(is_sequel_input),
+                    "genres_selecionados":    genres_input,
+                })
