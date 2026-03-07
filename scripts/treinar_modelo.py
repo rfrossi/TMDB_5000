@@ -1,11 +1,13 @@
 """
 Script de treinamento do modelo Random Forest para predição de popularidade de filmes.
+Este script utiliza o pipeline finalizado no Card 4, processando dados financeiros, 
+reduzindo a dimensionalidade por PCA e persistindo o modelo para predições interativas.
 
 Uso:
-    python treinar_modelo.py
+    poetry run python scripts/treinar_modelo.py
 
 Pré-requisito:
-    Rode o script de Data Preparation antes para gerar o 'tmdb_5000_pronto.csv' na pasta data/ do projeto.
+    O dataset 'tmdb_5000_pronto.csv' deve ter sido gerado pelo script data_preparation.py na pasta data/.
 """
 
 import os
@@ -49,7 +51,8 @@ MODEL_PATH = os.path.join(MODELS_DIR, "random_forest_model.pkl")
 # ---------------------------------------------------------------------------
 if not os.path.exists(DATA_PATH):
     print(f"ERRO: Arquivo não encontrado: {DATA_PATH}")
-    print("Execute primeiro o script de preparação de dados para gerar o tmdb_5000_pronto.csv")
+    print("Execute o script de preparação primeiro para gerar data/tmdb_5000_pronto.csv:")
+    print("  poetry run python scripts/data_preparation.py")
     sys.exit(1)
 
 df = pd.read_csv(DATA_PATH)
