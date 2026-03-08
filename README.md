@@ -124,9 +124,9 @@ poetry remove <package-name>
 ## Principais Insights ("A Fórmula do Sucesso")
 
 Nosso relatório analítico completo pode ser lido em [INSIGHTS.md](./INSIGHTS.md). De maneira resumida, identificamos que a "Fórmula do Sucesso" hegemônica prioriza a mitigação de risco:
-- **Alto Orçamento vs Risco Estético:** Investimentos gigantescos estão associados a gêneros familiares e franquias, visando lucros globais e licenciamentos, em vez de excelência artística/narrativa.
+- **Alto Orçamento vs Risco Estético:** Investimentos gigantescos estão associados a gêneros familiares e franquias (sequências), visando lucros globais e licenciamentos, em vez de excelência artística/narrativa.
 - **Terror como Refúgio:** Filmes de Horror apresentam ROI gigantesco, sendo um formato financeiramente sustentável e psicologicamente instigante sem precisar de estrelas milionárias.
-- **Engajamento Supera Qualidade:** O modelo preditivo provou que a quantidade de avaliações (*vote_count*) é um preditor muito mais forte que a nota em si (*vote_average*). Ou seja, filmes polarizadores que geram debates massivos nas redes são mais rentáveis que obras elogiadas, mas silenciosas.
+- **Previsibilidade Financeira Logística:** O modelo preditivo provou que o Sucesso Financeiro (Receita ≥ 2x Orçamento) pode ser previsto utilizando fatores estritamente de mercado e logística: época de lançamento (alta temporada/mês), ser ou não uma sequência, e o histórico prévio de diretores e estúdios. Decisões corporativas pesam tanto ou mais que o filme em si.
 Para saber mais e entender todas as limitações analíticas do dataset, confira o [INSIGHTS.md](./INSIGHTS.md).
 
 ## Referências
