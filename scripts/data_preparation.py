@@ -1,10 +1,11 @@
 """
 Script de Preparação de Dados para o Dataset TMDB 5000.
-Responsável pelo Card 2:
-Realiza a fusão (merge) entre os filmes e seus respectivos elencos,
-trata features JSON (como gêneros, companhias e cast),
-limpa inconsistências (orçamento/receita zerados) e gera os dados padronizados
-para Classificação de Sucesso Binário (tmdb_5000_pronto.csv).
+
+Realiza a fusão (merge) entre os diretórios de filmes e seus respectivos elencos.
+Trata features em formato JSON (como gêneros principais, produtoras e equipe),
+limpa inconsistências (orçamentos ou receitas isolados/zerados) e gera o dataset 
+padronizado para a tarefa de Classificação de Sucesso Binário.
+O arquivo final de output é `tmdb_5000_pronto.csv`.
 """
 
 import re

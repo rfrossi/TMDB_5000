@@ -47,14 +47,14 @@ Essa sazonalidade converte o consumo de cinema num ritual corporativamente orque
 
 ---
 
-## 6. O Modelo Preditivo e a Construção do "Hype"
+## 6. O Modelo Preditivo e a Anatomia do Sucesso Financeiro
 
 ### Constatações Numéricas
-O modelo *Random Forest* atingiu estabilidade considerável para prever alta rentabilidade e popularidade a partir de métricas brutas (orçamento, receita, duração, nota média, quantidade de avaliações). A métrica *vote_count* despontou, assim como o *budget*, como os componentes principais do PCA de maior impacto, muito à frente da *vote_average*.
+O modelo *Random Forest* readequado para prever o Sucesso Financeiro binário (Receita ≥ 2x Orçamento) obteve métricas sólidas (F1-score de ~64% e Recall de ~66%) utilizando *features* estritamente de mercado: orçamento logarítmico, mês de estreia, densidade de investimento, indicativo de sequência, e o histórico consolidado de sucesso do diretor, estúdio e ator principal (*Target Encoding*).
 
 ### Interpretação Crítica
-Isto expõe uma característica brutal da era do engajamento em massa: a qualidade (a nota média) não é um preditor contundente de rentabilidade, mas o engajamento (quantidade de votos) sim.
-Um filme com notas medianas amplamente discutido online vai quase certamente ter uma popularidade e faturamento melhores do que uma obra-prima de circuito artístico restrito que ninguém analisou. O algoritmo da cultura atual reflete as redes sociais: obras polarizadoras ou sustentadas por fortes bases de fãs que geram *debate e visualização massiva* tornam-se estrategicamente mais rentáveis que filmes consensualmente "ok", cimentando a era do escândalo e do espetáculo midiático.
+Esse resultado desmistifica a ideia de que o sucesso de um filme é puramente acidental ou uma "mágica" artística incognoscível. A capacidade do modelo em separar filmes lucrativos dos que dão prejuízo utilizando quase nenhuma métrica de qualidade ("nota") ou popularidade orgânica sinaliza que **o cinema hegemônico opera como um investimento financeiro de matriz previsível**. 
+Fatores logísticos (escolher lançar em alta temporada), corporativos (trabalhar com estúdios e diretores com histórico prévio de sucesso - o peso do *Target Encoding*) e mercadológicos (aproveitar uma franquia existente sendo uma sequência) têm um peso decisivo na mitigação do risco financeiro. O "Hype" não nasce espontaneamente; ele é manufaturado por essas decisões prévias à primeira gravação.
 
 ---
 
@@ -63,13 +63,12 @@ Um filme com notas medianas amplamente discutido online vai quase certamente ter
 Embora o dataset seja robusto o suficiente para estruturar o modelo, sua interpretação não deve ser considerada irrefutável pelos seguintes pontos:
 
 1. **Viés Anglo-Centrado:** A larga maioria do banco de dados foca em filmes com produção e distribuição em língua inglesa. O forte impacto sócio-cultural ou a bilheteria avassaladora de mercados como a Ásia, Índia (*Bollywood*) e Nigéria (*Nollywood*) não estão devidamente representados. Padrões identificados podem não se sustentar fora de Hollywood.
-2. **Ignorância Inflacionária:** Os campos de orçamento e receita (`budget`, `revenue`) baseiam-se em valores nominais ao ano de lançamento da obra. Não sofrem correção monetária/inflacionária histórica. Filmes clássicos lançados nos anos 70 que venderam muitos ingressos arrecadaram "pouco" no seu tempo, parecendo sub-representados perante sucessos modernos medianos, o que distorce a análise temporal.
-3. **Custos Ocultos (Marketing):** O campo `budget` do TMDB é uma aproximação frouxa do *Production Budget* (Custo de Produção direto da película). Ele geralmente exclui a verba de Marketing e Distribuição (*P&A - Print & Advertising*), que costuma dobrar o custo original em grandes produções da Disney/Marvel. Isso acarreta que o `profit` calculado é uma métrica artificialmente inflada na nossa análise.
-4. **Métrica Efêmera de "Popularidade":** O campo `popularity` é obtido via um aglomerado dinâmico do próprio sistema orgânico das plataformas TMDB. Ele é altamente volátil à época da captura no Kaggle e superdimensiona o sucesso moderno. Um filme irrelevante da década de 80 sendo reprisado no final de semana da captura do dado pode ter recebido um choque repentino de popularidade, não representando sua contribuição real histórica para o mercado.
+2. **Custos Ocultos (Marketing):** O campo `budget` do TMDB é uma aproximação frouxa do *Production Budget* (Custo de Produção direto da película). Ele geralmente exclui a verba de Marketing e Distribuição (*P&A - Print & Advertising*), que costuma dobrar o custo original em grandes produções da Disney/Marvel. Isso acarreta que o lucro (e ROI) calculado sirva apenas como uma métrica otimista não calibrada com dezenas de gastos indiretos.
+3. **Métrica Efêmera de "Popularidade" (Adequada via Pipeline):** O campo `popularity` original do TMDB é altamente volátil e superdimensiona sucessos modernos efêmeros. Foi rigorosamente por essa distorção que nossa análise **abandonou** as modelagens via Popularidade em prol da resiliência de prever puramente o *Sucesso Financeiro Binário* (Receita >= 2x Orçamento).
 
 ---
 
 ### Conclusão Definitiva
 
-Matematicamente, há uma **Fórmula do Sucesso**. E o Dataset confirma que ela se fundamenta na distribuição dos riscos perante o custo investido.
-Produtoras lucram de forma absoluta adotando franquias bilionárias e animações amigáveis (seguras para dublagem e *merchandising* global) ou, na outra ponta, fomentam centenas de filmes de baixo orçamento de Terror sem grandes elencos que exploram a psicologia do pânico. Modelos de "tamanho médio" costumam derrapar financeira e popularmente. Acima de qualquer arte apurada, o sucesso cinematográfico hegemônico se manifesta como o exercício corporativo de gerar **familiaridade engajante em épocas específicas do ano**.
+Matematicamente, há uma **Fórmula do Sucesso**. E o Dataset confirma que ela se fundamenta na mitigação extrema de riscos operacionais.
+Produtoras lucram de forma absoluta adotando franquias bilionárias (sequências), encaixando lançamentos na altíssima temporada de férias, e contratando diretores e estúdios com histórico matemático de dobrar o orçamento (Score Encodings). Na outra ponta, fomentam centenas de filmes de baixo orçamento de Terror sem grandes elencos que exploram a psicologia do pânico. Modelos alternativos de "tamanho médio" costumam derrapar financeiramente. Acima de qualquer arte apurada, o sucesso cinematográfico hegemônico se manifesta como um **exercício corporativo logístico e histórico**.

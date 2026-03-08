@@ -1,10 +1,11 @@
 """
 Streamlit Dashboard — TMDB 5000 Movies Analysis & Success Prediction
 
-Módulo de Interface Interativa e Visualização (Card 5).
-Consolida os insights da Análise Exploratória (EDA - Card 3)
-e integra a predição gerada pelo modelo Random Forest (Card 4),
-permitindo que o usuário explore métricas e tendências dinamicamente.
+Módulo de Interface Interativa e Visualização.
+Consolida os insights da Análise Exploratória (EDA)
+e integra a predição gerada pelo pipeline de Machine Learning (Random Forest),
+permitindo que o usuário explore métricas financeiras, estatísticas de mercado 
+e tendências dinamicamente.
 """
 
 import streamlit as st
@@ -34,7 +35,11 @@ BASE_DIR = Path(__file__).parent
 
 @st.cache_data
 def load_data():
-    """Carrega e pré-processa o dataset TMDB 5000 preparado."""
+    """
+    Carrega e pré-processa o dataset TMDB 5000 preparado.
+    Garante a integridade dos tipos de dados numéricos e textuais 
+    para que a interface e os filtros operem corretamente de forma dinâmica.
+    """
     df = pd.read_csv(BASE_DIR / 'data' / 'tmdb_5000_pronto.csv')
     # mes_estreia já é inteiro; garantir tipos numéricos
     df['budget'] = pd.to_numeric(df['budget'], errors='coerce')
@@ -51,7 +56,10 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    """Carrega o pipeline Random Forest treinado."""
+    """
+    Carrega o pipeline estruturado (Transformer, SMOTE e Random Forest)
+    treinado e preservado fisicamente na pasta models/.
+    """
     return joblib.load(BASE_DIR / 'models' / 'random_forest_model.pkl')
 
 
@@ -78,15 +86,15 @@ def gerar_insight_ia(
     Gera análise textual via Groq LLM com cache por combinação de inputs.
 
     Parâmetros:
-        genero: Gênero principal do filme
-        mes: Mês de estreia (1-12)
-        budget: Orçamento em USD
-        sucesso_prob: Probabilidade prevista (0-100)
-        acuracia: Acurácia do modelo (0-100)
-        f1: F1-Score do modelo (0-100)
+        genero (str): Gênero principal do filme selecionado.
+        mes (int): Mês numérico de estreia (1-12).
+        budget (int): Orçamento previsto em USD.
+        sucesso_prob (float): Probabilidade percentual de sucesso (0-100).
+        acuracia (float): Eficiência histórica do modelo (0-100).
+        f1 (float): F1-Score histórico do modelo (0-100).
 
     Retorna:
-        String com a análise textual gerada pela IA
+        str: String contendo a análise textual construída pela IA.
     """
     if not GROQ_API_KEY:
         return "Chave da API Groq não configurada. Verifique o arquivo .env."
