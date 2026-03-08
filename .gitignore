@@ -142,3 +142,6 @@ datasets/
 
 # Model artifacts
 *.pkl
+
+# Legacy study notebooks
+DataPrep_luiscarlos*.ipynb
