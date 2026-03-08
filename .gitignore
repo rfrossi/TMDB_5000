@@ -134,10 +134,10 @@ dmypy.json
 Thumbs.db
 
 # Data files
-*.csv
+#*.csv
 *.xlsx
 *.json
-data/
+#data/
 datasets/
 
 # Model artifacts
