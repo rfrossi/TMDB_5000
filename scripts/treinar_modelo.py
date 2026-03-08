@@ -1,17 +1,20 @@
 """
-Script de treinamento do modelo Random Forest para predição de sucesso financeiro de filmes.
-Classifica se um filme terá sucesso binário (revenue >= 2 * budget) usando features
-numéricas e categóricas com ColumnTransformer, SMOTE e Random Forest.
+Script de Treinamento de Machine Learning (Random Forest) para o Dataset TMDB 5000.
 
-Correção de Data Leakage: Target Encoding (score_diretor, score_estudio, score_ator)
-é calculado APENAS no conjunto de treino, após o train_test_split. Os valores são
-então aplicados tanto em X_train quanto em X_test (com fallback para a média global).
+Classifica a probabilidade de um filme atingir "Sucesso Financeiro" (Receita >= 2x Orçamento).
+Utiliza um pipeline com `ColumnTransformer` (StandardScaler e OneHotEncoder), `SMOTE` 
+(para balanceamento de classes) e `RandomForestClassifier`.
 
-Uso:
-    poetry run python scripts/treinar_modelo.py
+Aplica técnicas estritas contra Data Leakage: os dicionários de Target Encoding 
+(diretor, estúdio e ator_principal) são gerados puramente sobre os dados de treino 
+e mapeados posteriormente para o cenário de teste (com métrica substituta global).
+
+Saídas (Artefatos):
+    - Modelo final empacotado (`random_forest_model.pkl`) na pasta `models/`.
+    - Painel gráfico de avaliação cruzada (`avaliacao_modelo.png`) na pasta `models/`.
 
 Pré-requisito:
-    O dataset 'tmdb_5000_pronto.csv' deve ter sido gerado pelo script data_preparation.py na pasta data/.
+    - Execução prévia do `data_preparation.py` para geração do `tmdb_5000_pronto.csv`.
 """
 
 import os
