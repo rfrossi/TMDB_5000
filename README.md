@@ -131,7 +131,7 @@ Para saber mais e entender todas as limitações analíticas do dataset, confira
 
 ## Referências
 
-Consulte o notebook de referência em `referencias/DataPrep_luiscarlos_VERSAO_FINAL.ipynb` para mais detalhes sobre a abordagem de preparação de dados.
+Consulte o script `scripts/data_preparation.py` para detalhes sobre a abordagem de preparação de dados.
 
 ## Licença
 

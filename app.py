@@ -16,7 +16,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
 import warnings
+import os
 from pathlib import Path
+from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 warnings.filterwarnings('ignore')
 
@@ -47,6 +53,75 @@ def load_data():
 def load_model():
     """Carrega o pipeline Random Forest treinado."""
     return joblib.load(BASE_DIR / 'models' / 'random_forest_model.pkl')
+
+
+# ─────────────────────────────────────────────────────────────────
+# FUNÇÃO DE ANÁLISE COM IA (GROQ)
+# ─────────────────────────────────────────────────────────────────
+
+NOMES_MESES = {
+    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+}
+
+@st.cache_data(show_spinner=False)
+def gerar_insight_ia(
+    genero: str,
+    mes: int,
+    budget: int,
+    sucesso_prob: float,
+    acuracia: float,
+    f1: float,
+) -> str:
+    """
+    Gera análise textual via Groq LLM com cache por combinação de inputs.
+
+    Parâmetros:
+        genero: Gênero principal do filme
+        mes: Mês de estreia (1-12)
+        budget: Orçamento em USD
+        sucesso_prob: Probabilidade prevista (0-100)
+        acuracia: Acurácia do modelo (0-100)
+        f1: F1-Score do modelo (0-100)
+
+    Retorna:
+        String com a análise textual gerada pela IA
+    """
+    if not GROQ_API_KEY:
+        return "Chave da API Groq não configurada. Verifique o arquivo .env."
+
+    nome_mes = NOMES_MESES.get(mes, str(mes))
+    budget_fmt = f"US$ {budget:,.0f}".replace(",", ".")
+
+    prompt = f"""Você é um analista de viabilidade cinematográfica experiente.
+Com base nos dados abaixo, forneça uma avaliação objetiva e direta (máximo 4 frases) sobre a viabilidade financeira do filme.
+
+Dados do projeto:
+- Gênero: {genero}
+- Mês de estreia: {nome_mes}
+- Orçamento: {budget_fmt}
+- Probabilidade de sucesso prevista pelo modelo: {sucesso_prob:.1f}%
+- Modelo utilizado: Random Forest com acurácia de {acuracia:.1f}% e F1-Score de {f1:.1f}%
+
+Estruture sua resposta assim:
+1. Avaliação geral do potencial (positiva/negativa/neutra)
+2. Contexto do gênero e sazonalidade (mês de estreia)
+3. Consideração sobre o orçamento
+
+Seja conciso e use linguagem profissional em português brasileiro."""
+
+    try:
+        client = Groq(api_key=GROQ_API_KEY)
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4,
+            max_tokens=400,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Erro ao consultar a IA: {str(e)}"
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -471,3 +546,21 @@ with tab6:
                 st.success(f"✅ **Sucesso Previsto** ({sucesso_prob:.1f}% de probabilidade)")
             else:
                 st.warning(f"⚠️ **Não Sucesso Previsto** ({(100 - sucesso_prob):.1f}% de probabilidade de não sucesso)")
+
+            # ── Insight da IA ──────────────────────────────────────
+            st.divider()
+            with st.expander("🧠 Insight da IA — Análise do Resultado", expanded=True):
+                with st.spinner("Analisando com Inteligência Artificial..."):
+                    insight = gerar_insight_ia(
+                        genero=genero_input,
+                        mes=mes_estreia_input,
+                        budget=budget_input,
+                        sucesso_prob=sucesso_prob,
+                        acuracia=acc,
+                        f1=f1,
+                    )
+
+                if pred_class == 1:
+                    st.success(insight)
+                else:
+                    st.info(insight)
