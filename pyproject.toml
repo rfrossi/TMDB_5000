@@ -17,6 +17,8 @@ dependencies = [
     "ipykernel>=7.0.0",
     "plotly (>=6.6.0,<7.0.0)",
     "imbalanced-learn (>=0.14.1,<0.15.0)",
+    "groq (>=0.13.0)",
+    "python-dotenv (>=1.0.0)",
 ]
 
 
