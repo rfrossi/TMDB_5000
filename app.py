@@ -134,17 +134,63 @@ Seja conciso e use linguagem profissional em português brasileiro."""
 
 # ─────────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO DA PÁGINA
-# ─────────────────────────────────────────────────────────────────
-
 st.set_page_config(
-    page_title="TMDB 5000 — Dashboard",
-    page_icon="🎬",
+    page_title="Cine Analytics",
+    page_icon="🎥",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("🎬 TMDB 5000 — Dashboard Interativo")
-st.markdown("Análise de dados de filmes com previsão de sucesso financeiro")
+st.markdown("""
+<style>
+/* Centralizar Título e Subtítulo */
+h1 {
+    text-align: center;
+    margin-top: 0rem !important;
+    padding-bottom: 0px !important;
+}
+.stMarkdown p {
+    text-align: center;
+    margin-bottom: 2rem !important; 
+}
+
+/* Devolver alinhamento à esquerda para os textos de dentro do dashboard e barra lateral */
+.stMarkdown div[data-testid="stMarkdownContainer"] > p {
+    text-align: inherit;
+    margin-bottom: 1rem !important;
+}
+div[data-testid="stSidebar"] .stMarkdown p {
+    text-align: left;
+}
+
+/* Espaçar e Aumentar as Abas (Tabs) */
+.stTabs {
+    margin-top: 4rem !important;
+}
+.stTabs [data-baseweb="tab-list"] {
+    gap: 1.5rem;
+    justify-content: center;
+}
+.stTabs [data-baseweb="tab"] {
+    height: 4rem;
+    white-space: pre-wrap;
+    background-color: transparent;
+    border-radius: 4px;
+    padding: 10px 20px;
+}
+.stTabs [data-baseweb="tab"] p {
+    font-size: 20px !important;
+    font-weight: 600 !important;
+}
+.stTabs [aria-selected="true"] {
+    background-color: #E50914;
+    color: white !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("<h1 style='text-align: center; font-size: 3.5em;'>🎥 Cine Analytics</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 1.2em;'>Análise de dados de filmes com previsão de sucesso financeiro</p>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────
 # CARREGAR DADOS
@@ -194,12 +240,12 @@ st.sidebar.markdown(f"**Filmes encontrados:** {len(filtered_df)} / {len(df)}")
 # ─────────────────────────────────────────────────────────────────
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "📊 Visão Geral",
-    "🎭 Gêneros",
-    "🏢 Estúdios",
-    "📅 Distribuição por Período",
-    "🔗 Correlações",
-    "🤖 Previsão ML"
+    "👁️ Visão Geral",
+    "🎞️ Gêneros",
+    "🎬 Estúdios",
+    "⏳ Distribuição por Período",
+    "🖇️ Correlações",
+    "🔮 Previsão ML"
 ])
 
 # ─────────────────────────────────────────────────────────────────
@@ -211,14 +257,14 @@ with tab1:
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("📽️ Total de Filmes", f"{len(filtered_df):,.0f}")
+        st.metric("🎞️ Total de Filmes", f"{len(filtered_df):,.0f}")
     with col2:
         taxa = filtered_df['target_sucesso'].mean() * 100
-        st.metric("✅ Taxa de Sucesso (%)", f"{taxa:.1f}%")
+        st.metric("🎯 Taxa de Sucesso (%)", f"{taxa:.1f}%")
     with col3:
-        st.metric("💵 Orçamento Médio", f"${filtered_df['budget'].mean()/1e6:.2f}M")
+        st.metric("🎟️ Orçamento Médio", f"${filtered_df['budget'].mean()/1e6:.2f}M")
     with col4:
-        st.metric("⏱️ Duração Média", f"{filtered_df['runtime'].mean():.0f} min")
+        st.metric("⏳ Duração Média", f"{filtered_df['runtime'].mean():.0f} min")
 
     st.divider()
 
@@ -228,7 +274,7 @@ with tab1:
         filtered_df,
         x='budget', y='runtime',
         color=filtered_df['target_sucesso'].map({1: 'Sucesso', 0: 'Não Sucesso'}),
-        color_discrete_map={'Sucesso': '#2ecc71', 'Não Sucesso': '#e74c3c'},
+        color_discrete_map={'Sucesso': '#2ecc71', 'Não Sucesso': '#E50914'},
         title="Cada ponto: cor = resultado financeiro",
         labels={
             'budget': 'Orçamento (USD)',
@@ -236,7 +282,7 @@ with tab1:
             'color': 'Resultado'
         }
     )
-    scatter.update_layout(height=500, template='plotly_white', hovermode='closest')
+    scatter.update_layout(height=500, template='plotly_dark', hovermode='closest')
     st.plotly_chart(scatter, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────────
@@ -266,9 +312,9 @@ with tab2:
                 color='taxa_sucesso',
                 labels={'taxa_sucesso': 'Taxa de Sucesso', 'genero_principal': 'Gênero'},
                 title="Taxa de Sucesso por Gênero",
-                color_continuous_scale='Turbo'
+                color_continuous_scale='Reds'
             )
-            fig_taxa.update_layout(height=400, template='plotly_white', showlegend=False)
+            fig_taxa.update_layout(height=400, template='plotly_dark', showlegend=False)
             fig_taxa.update_xaxes(tickformat='.0%')
             st.plotly_chart(fig_taxa, use_container_width=True)
 
@@ -283,9 +329,9 @@ with tab2:
                 color='orcamento_medio',
                 labels={'orcamento_medio': 'Orçamento Médio (USD)', 'genero_principal': 'Gênero'},
                 title="Orçamento Médio por Gênero",
-                color_continuous_scale='Viridis'
+                color_continuous_scale='Reds'
             )
-            fig_orc.update_layout(height=400, template='plotly_white', showlegend=False)
+            fig_orc.update_layout(height=400, template='plotly_dark', showlegend=False)
             st.plotly_chart(fig_orc, use_container_width=True)
 
         # Tabela detalhada
@@ -333,7 +379,7 @@ with tab3:
                 title="Top 10 Estúdios — Taxa de Sucesso",
                 color_continuous_scale='Reds'
             )
-            fig_studio_taxa.update_layout(height=400, template='plotly_white', showlegend=False)
+            fig_studio_taxa.update_layout(height=400, template='plotly_dark', showlegend=False)
             fig_studio_taxa.update_xaxes(tickformat='.0%')
             st.plotly_chart(fig_studio_taxa, use_container_width=True)
 
@@ -348,9 +394,9 @@ with tab3:
                 color='orcamento_medio',
                 labels={'orcamento_medio': 'Orçamento Médio (USD)', 'estudio': 'Estúdio'},
                 title="Top 10 Estúdios — Orçamento Médio",
-                color_continuous_scale='Blues'
+                color_continuous_scale='Reds'
             )
-            fig_studio_orc.update_layout(height=400, template='plotly_white', showlegend=False)
+            fig_studio_orc.update_layout(height=400, template='plotly_dark', showlegend=False)
             st.plotly_chart(fig_studio_orc, use_container_width=True)
     else:
         st.warning("Nenhum estúdio encontrado com >= 5 filmes nos filtros selecionados.")
@@ -380,9 +426,9 @@ with tab4:
             monthly_taxa, x='mes', y='taxa_sucesso',
             title="Taxa de Sucesso por Mês de Estreia",
             labels={'mes': 'Mês', 'taxa_sucesso': 'Taxa de Sucesso'},
-            color='taxa_sucesso', color_continuous_scale='Teal'
+            color='taxa_sucesso', color_continuous_scale='Reds'
         )
-        fig_taxa_mes.update_layout(height=400, template='plotly_white', showlegend=False)
+        fig_taxa_mes.update_layout(height=400, template='plotly_dark', showlegend=False)
         fig_taxa_mes.update_yaxes(tickformat='.0%')
         st.plotly_chart(fig_taxa_mes, use_container_width=True)
 
@@ -399,9 +445,9 @@ with tab4:
             monthly_count, x='mes', y='count',
             title="Quantidade de Filmes por Mês de Estreia",
             labels={'mes': 'Mês', 'count': 'Quantidade'},
-            color='count', color_continuous_scale='Sunset'
+            color='count', color_continuous_scale='Reds'
         )
-        fig_count_mes.update_layout(height=400, template='plotly_white', showlegend=False)
+        fig_count_mes.update_layout(height=400, template='plotly_dark', showlegend=False)
         st.plotly_chart(fig_count_mes, use_container_width=True)
 
 # ─────────────────────────────────────────────────────────────────
@@ -411,9 +457,10 @@ with tab4:
 with tab5:
     st.subheader("Matriz de Correlação — Pearson")
 
-    numeric_cols = ['budget', 'runtime', 'mes_estreia', 'e_sequencia', 'target_sucesso']
+    numeric_cols = ['budget', 'densidade_investimento', 'runtime', 'mes_estreia', 'e_sequencia', 'target_sucesso']
     col_names_pt = {
         'budget': 'Orçamento',
+        'densidade_investimento': 'Densidade (US$/min)',
         'runtime': 'Duração',
         'mes_estreia': 'Mês Estreia',
         'e_sequencia': 'É Sequência',
@@ -424,7 +471,10 @@ with tab5:
     corr_df.rename(columns=col_names_pt, index=col_names_pt, inplace=True)
 
     fig_corr, ax = plt.subplots(figsize=(8, 6))
-    sns.heatmap(
+    fig_corr.patch.set_facecolor('none')
+    ax.patch.set_facecolor('none')
+    
+    heatmap = sns.heatmap(
         corr_df,
         annot=True,
         fmt='.2f',
@@ -433,14 +483,22 @@ with tab5:
         vmax=1,
         center=0,
         linewidths=0.5,
-        linecolor='white',
+        linecolor='#1a1a1a',
         square=True,
         ax=ax,
-        annot_kws={'size': 11}
+        annot_kws={'size': 11},
+        cbar_kws={'label': ''}
     )
-    ax.set_title("Correlação entre Métricas (Pearson)", fontsize=14, pad=16)
-    ax.tick_params(axis='x', rotation=45, labelsize=10)
-    ax.tick_params(axis='y', rotation=0, labelsize=10)
+    
+    ax.set_title("Correlação entre Métricas (Pearson)", color='white', fontsize=14, pad=16)
+    ax.tick_params(axis='x', colors='white', rotation=45, labelsize=10)
+    ax.tick_params(axis='y', colors='white', rotation=0, labelsize=10)
+    
+    # Configurar legenda de cores (colorbar) para o escuro
+    cbar = heatmap.collections[0].colorbar
+    cbar.ax.tick_params(colors='white')
+    cbar.outline.set_edgecolor('white')
+    
     plt.tight_layout()
     st.pyplot(fig_corr, use_container_width=True)
     plt.close(fig_corr)
@@ -487,8 +545,8 @@ with tab6:
         e_sequencia_input = st.checkbox("É uma sequência?")
         genero_input  = st.selectbox("Gênero Principal", sorted(df['genero_principal'].unique()))
         estudio_input = st.selectbox("Estúdio", df['estudio'].value_counts().head(50).index.tolist())
-        diretor_input = st.text_input("Diretor", value="Christopher Nolan")
-        ator_input    = st.text_input("Ator Principal", value="Robert Downey Jr.")
+        diretor_input = st.selectbox("Diretor", sorted(df['diretor'].unique()))
+        ator_input    = st.selectbox("Ator Principal", sorted(df['ator_principal'].astype(str).unique()))
         threshold = st.slider(
             "Apetite ao Risco (limiar de decisão)",
             min_value=20, max_value=80, value=50, step=5,
@@ -528,26 +586,26 @@ with tab6:
             fig_gauge = go.Figure(go.Indicator(
                 mode="gauge+number+delta",
                 value=sucesso_prob,
-                title={'text': "Probabilidade de Sucesso Financeiro"},
+                title={'text': "Probabilidade de Sucesso Financeiro", 'font': {'color': "white"}},
                 delta={'reference': threshold * 100},
                 gauge={
-                    'axis': {'range': [0, 100]},
-                    'bar': {'color': "darkblue"},
+                    'axis': {'range': [0, 100], 'tickcolor': "white"},
+                    'bar': {'color': "#ffffff"},
                     'steps': [
-                        {'range': [0, 25],  'color': "#e8f4f8"},
-                        {'range': [25, 50], 'color': "#b3d9e6"},
-                        {'range': [50, 75], 'color': "#7fb3d5"},
-                        {'range': [75, 100],'color': "#2874a6"}
+                        {'range': [0, 25],  'color': "#1a1a1a"},
+                        {'range': [25, 50], 'color': "#333333"},
+                        {'range': [50, 75], 'color': "#661414"},
+                        {'range': [75, 100],'color': "#E50914"}
                     ],
                     'threshold': {
-                        'line': {'color': "red", 'width': 4},
+                        'line': {'color': "white", 'width': 4},
                         'thickness': 0.75,
                         'value': threshold * 100
                     }
                 },
-                number={'suffix': "%"}
+                number={'suffix': "%", 'font': {'color': "white"}}
             ))
-            fig_gauge.update_layout(height=400)
+            fig_gauge.update_layout(height=400, template='plotly_dark', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_gauge, use_container_width=True)
 
             if pred_class == 1:
